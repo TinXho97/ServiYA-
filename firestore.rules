@@ -1,0 +1,115 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: users
+    // Fields: uid, nombre, email, telefono, tipo_usuario, foto_perfil, descripcion, zona, fecha_registro, aprobado, destacado, ranking_score, promedio_estrellas, cantidad_trabajos, cantidad_reseñas
+    //
+    // Collection: categories
+    // Fields: nombre_categoria
+    //
+    // Collection: services
+    // Fields: nombre_servicio, categoria_id
+    //
+    // Collection: worker_services
+    // Fields: trabajador_id, servicio_id, nombre_servicio, descripcion, precio_base
+    //
+    // Collection: work_photos
+    // Fields: trabajador_id, url_foto, descripcion, fecha
+    //
+    // Collection: requests
+    // Fields: cliente_id, cliente_nombre, trabajador_id, trabajador_nombre, descripcion, estado, fecha
+    //
+    // Collection: reviews
+    // Fields: trabajador_id, cliente_id, cliente_nombre, estrellas, comentario, puntualidad, calidad, precio, fecha
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tipo_usuario == 'admin' ||
+        (request.auth.token.email == "martinivanarteaga@gmail.com" && request.auth.token.email_verified == true)
+      );
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidUser(data) {
+      return data.nombre is string && data.nombre.size() > 0 && data.nombre.size() < 100 &&
+             data.email is string && data.email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$") &&
+             data.tipo_usuario in ['cliente', 'trabajador', 'admin'];
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data) &&
+                    request.resource.data.tipo_usuario != 'admin'; // Cannot self-promote to admin
+      allow update: if isAuthenticated() && (
+        (isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.tipo_usuario == resource.data.tipo_usuario) ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /services/{serviceId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /worker_services/{wsId} {
+      allow read: if true;
+      allow create, update: if isAuthenticated() && (request.resource.data.trabajador_id == request.auth.uid || isAdmin());
+      allow delete: if isAuthenticated() && (resource.data.trabajador_id == request.auth.uid || isAdmin());
+    }
+
+    match /work_photos/{photoId} {
+      allow read: if true;
+      allow create, update: if isAuthenticated() && (request.resource.data.trabajador_id == request.auth.uid || isAdmin());
+      allow delete: if isAuthenticated() && (resource.data.trabajador_id == request.auth.uid || isAdmin());
+    }
+
+    match /requests/{requestId} {
+      allow read: if isAuthenticated() && (
+        request.auth.uid == resource.data.cliente_id ||
+        request.auth.uid == resource.data.trabajador_id ||
+        isAdmin()
+      );
+      allow create: if isAuthenticated() && request.resource.data.cliente_id == request.auth.uid;
+      allow update: if isAuthenticated() && (
+        request.auth.uid == resource.data.cliente_id ||
+        request.auth.uid == resource.data.trabajador_id ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && request.resource.data.cliente_id == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+  }
+}

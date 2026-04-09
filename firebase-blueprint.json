@@ -1,0 +1,112 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information for clients, workers, and admins.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "nombre": { "type": "string" },
+        "email": { "type": "string" },
+        "telefono": { "type": "string" },
+        "tipo_usuario": { "type": "string", "enum": ["cliente", "trabajador", "admin"] },
+        "foto_perfil": { "type": "string" },
+        "descripcion": { "type": "string" },
+        "zona": { "type": "string" },
+        "fecha_registro": { "type": "string", "format": "date-time" },
+        "aprobado": { "type": "boolean" },
+        "destacado": { "type": "boolean" },
+        "ranking_score": { "type": "number" },
+        "promedio_estrellas": { "type": "number" },
+        "cantidad_trabajos": { "type": "number" },
+        "cantidad_reseñas": { "type": "number" }
+      },
+      "required": ["uid", "nombre", "email", "tipo_usuario"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Service categories (e.g., Plomería, Electricidad).",
+      "type": "object",
+      "properties": {
+        "nombre_categoria": { "type": "string" }
+      },
+      "required": ["nombre_categoria"]
+    },
+    "Service": {
+      "title": "Service",
+      "description": "Specific services within a category.",
+      "type": "object",
+      "properties": {
+        "nombre_servicio": { "type": "string" },
+        "categoria_id": { "type": "string" }
+      },
+      "required": ["nombre_servicio", "categoria_id"]
+    },
+    "WorkerService": {
+      "title": "WorkerService",
+      "description": "Services offered by a specific worker.",
+      "type": "object",
+      "properties": {
+        "trabajador_id": { "type": "string" },
+        "servicio_id": { "type": "string" },
+        "nombre_servicio": { "type": "string" },
+        "descripcion": { "type": "string" },
+        "precio_base": { "type": "number" }
+      },
+      "required": ["trabajador_id", "servicio_id"]
+    },
+    "WorkPhoto": {
+      "title": "WorkPhoto",
+      "description": "Photos of work performed by a worker.",
+      "type": "object",
+      "properties": {
+        "trabajador_id": { "type": "string" },
+        "url_foto": { "type": "string" },
+        "descripcion": { "type": "string" },
+        "fecha": { "type": "string", "format": "date-time" }
+      },
+      "required": ["trabajador_id", "url_foto"]
+    },
+    "WorkRequest": {
+      "title": "WorkRequest",
+      "description": "Service requests from clients to workers.",
+      "type": "object",
+      "properties": {
+        "cliente_id": { "type": "string" },
+        "cliente_nombre": { "type": "string" },
+        "trabajador_id": { "type": "string" },
+        "trabajador_nombre": { "type": "string" },
+        "descripcion": { "type": "string" },
+        "estado": { "type": "string", "enum": ["pendiente", "aceptado", "terminado", "cancelado"] },
+        "fecha": { "type": "string", "format": "date-time" }
+      },
+      "required": ["cliente_id", "trabajador_id", "estado"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Reviews left by clients for workers.",
+      "type": "object",
+      "properties": {
+        "trabajador_id": { "type": "string" },
+        "cliente_id": { "type": "string" },
+        "cliente_nombre": { "type": "string" },
+        "estrellas": { "type": "number" },
+        "comentario": { "type": "string" },
+        "puntualidad": { "type": "number" },
+        "calidad": { "type": "number" },
+        "precio": { "type": "number" },
+        "fecha": { "type": "string", "format": "date-time" }
+      },
+      "required": ["trabajador_id", "cliente_id", "estrellas"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": { "schema": "User", "description": "User profiles" },
+    "/categories/{categoryId}": { "schema": "Category", "description": "Service categories" },
+    "/services/{serviceId}": { "schema": "Service", "description": "Specific services" },
+    "/worker_services/{workerServiceId}": { "schema": "WorkerService", "description": "Services offered by workers" },
+    "/work_photos/{photoId}": { "schema": "WorkPhoto", "description": "Worker portfolio photos" },
+    "/requests/{requestId}": { "schema": "WorkRequest", "description": "Job requests" },
+    "/reviews/{reviewId}": { "schema": "Review", "description": "Worker reviews" }
+  }
+}
